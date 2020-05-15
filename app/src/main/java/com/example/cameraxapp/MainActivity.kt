@@ -3,10 +3,13 @@ package com.example.cameraxapp
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.util.Size
 import android.graphics.Matrix
+import android.net.Uri
 import android.util.Log
+import android.view.KeyEvent
 import android.view.Surface
 import android.view.TextureView
 import android.view.ViewGroup
@@ -18,7 +21,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import java.io.File
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
+
 
 private const val REQUEST_CODE_PERMISSIONS = 10
 
@@ -49,18 +52,29 @@ class MainActivity : AppCompatActivity(), LifecycleOwner {
 
     private val executor = Executors.newSingleThreadExecutor()
     private lateinit var viewFinder: TextureView
+    val previewConfig = PreviewConfig.Builder().apply {
+        setTargetResolution(Size(640, 480))
+    }.build()
+
+
+    // Build the viewfinder use case
+    val preview = Preview(previewConfig)
+
+    // Every time the viewfinder is updated, recompute layout
+    val imageCaptureConfig = ImageCaptureConfig.Builder()
+        .apply {
+            // We don't set a resolution for image capture; instead, we
+            // select a capture mode which will infer the appropriate
+            // resolution based on aspect ration and requested mode
+            setCaptureMode(ImageCapture.CaptureMode.MIN_LATENCY)
+        }.build()
+
+    // Build the image capture use case and attach button click listener
+    val imageCapture = ImageCapture(imageCaptureConfig)
+    private lateinit var file : File
 
     private fun startCamera() {
         // Create configuration object for the viewfinder use case
-        val previewConfig = PreviewConfig.Builder().apply {
-            setTargetResolution(Size(640, 480))
-        }.build()
-
-
-        // Build the viewfinder use case
-        val preview = Preview(previewConfig)
-
-        // Every time the viewfinder is updated, recompute layout
         preview.setOnPreviewOutputUpdateListener {
 
             // To update the SurfaceTexture, we have to remove it and re-add it
@@ -72,27 +86,16 @@ class MainActivity : AppCompatActivity(), LifecycleOwner {
             updateTransform()
         }
 
-        val imageCaptureConfig = ImageCaptureConfig.Builder()
-            .apply {
-                // We don't set a resolution for image capture; instead, we
-                // select a capture mode which will infer the appropriate
-                // resolution based on aspect ration and requested mode
-                setCaptureMode(ImageCapture.CaptureMode.MIN_LATENCY)
-            }.build()
-
-        // Build the image capture use case and attach button click listener
-        val imageCapture = ImageCapture(imageCaptureConfig)
+        file = File(externalMediaDirs.first(),
+            "${System.currentTimeMillis()}.jpg")
         findViewById<ImageButton>(R.id.capture_button).setOnClickListener {
-            val file = File(externalMediaDirs.first(),
-                "${System.currentTimeMillis()}.jpg")
-
             imageCapture.takePicture(file, executor,
                 object : ImageCapture.OnImageSavedListener {
                     override fun onError(
                         imageCaptureError: ImageCapture.ImageCaptureError,
                         message: String,
-                        exc: Throwable?
-                    ) {
+                        exc: Throwable?)
+                    {
                         val msg = "Photo capture failed: $message"
                         Log.e("CameraXApp", msg, exc)
                         viewFinder.post {
@@ -103,18 +106,81 @@ class MainActivity : AppCompatActivity(), LifecycleOwner {
                     override fun onImageSaved(file: File) {
                         val msg = "Photo capture succeeded: ${file.absolutePath}"
                         Log.d("CameraXApp", msg)
+                        galleryAddPic()
                         viewFinder.post {
                             Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
                         }
                     }
+                    @Suppress("DEPRECATION")
+                    private fun galleryAddPic() {
+                        Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).also { mediaScanIntent ->
+                            val f = File(file.absolutePath)
+                            mediaScanIntent.data = Uri.fromFile(f)
+                            sendBroadcast(mediaScanIntent)
+                         }
+                    }
                 })
+
         }
+
 
         // Bind use cases to lifecycle
         // If Android Studio complains about "this" being not a LifecycleOwner
         // try rebuilding the project or updating the appcompat dependency to
         // version 1.1.0 or higher.
         CameraX.bindToLifecycle(this, preview, imageCapture)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        preview.setOnPreviewOutputUpdateListener {
+
+            // To update the SurfaceTexture, we have to remove it and re-add it
+            val parent = viewFinder.parent as ViewGroup
+            parent.removeView(viewFinder)
+            parent.addView(viewFinder, 0)
+
+            viewFinder.surfaceTexture = it.surfaceTexture
+            updateTransform()
+        }
+        file = File(externalMediaDirs.first(),
+            "${System.currentTimeMillis()}.jpg")
+        if(keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN){
+            //Toast.makeText(this, "shuit", Toast.LENGTH_SHORT).show()
+            imageCapture.takePicture(file, executor,
+                object : ImageCapture.OnImageSavedListener {
+                    override fun onError(
+                        imageCaptureError: ImageCapture.ImageCaptureError,
+                        message: String,
+                        exc: Throwable?)
+                    {
+                        val msg = "Photo capture failed: $message"
+                        Log.e("CameraXApp", msg, exc)
+                        viewFinder.post {
+                            Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+
+                    override fun onImageSaved(file: File) {
+                        val msg = "Photo capture succeeded: ${file.absolutePath}"
+                        Log.d("CameraXApp", msg)
+                        galleryAddPic()
+                        viewFinder.post {
+                            Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    @Suppress("DEPRECATION")
+                    private fun galleryAddPic() {
+                        Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).also { mediaScanIntent ->
+                            val f = File(file.absolutePath)
+                            mediaScanIntent.data = Uri.fromFile(f)
+                            sendBroadcast(mediaScanIntent)
+                        }
+                    }
+                })
+            return true
+        }
+        CameraX.bindToLifecycle(this, preview, imageCapture)
+        return super.onKeyDown(keyCode, event)
     }
 
     private fun updateTransform() {
@@ -163,6 +229,4 @@ class MainActivity : AppCompatActivity(), LifecycleOwner {
         ContextCompat.checkSelfPermission(
             baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
-
-
 }
