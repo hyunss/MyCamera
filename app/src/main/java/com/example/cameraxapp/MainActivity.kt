@@ -134,7 +134,7 @@ class MainActivity : AppCompatActivity(), LifecycleOwner {
     }
 
     private fun setup() {
-            bt.send("start",true)
+            bt.send("2",true)
     }
 
     private val executor = Executors.newSingleThreadExecutor()
@@ -223,24 +223,10 @@ class MainActivity : AppCompatActivity(), LifecycleOwner {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        preview.setOnPreviewOutputUpdateListener {
-
-            // To update the SurfaceTexture, we have to remove it and re-add it
-            val parent = viewFinder.parent as ViewGroup
-            parent.removeView(viewFinder)
-            parent.addView(viewFinder, 0)
-
-            viewFinder.surfaceTexture = it.surfaceTexture
-            updateTransform()
-        }
-        file = File(externalMediaDirs.first(),
-            "${System.currentTimeMillis()}.jpg")
         if(keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN){
-            //Toast.makeText(this, "shuit", Toast.LENGTH_SHORT).show()
-            takePicture()
+            bt.send("1",true)
             return true
         }
-        CameraX.bindToLifecycle(this, preview, imageCapture)
         return super.onKeyDown(keyCode, event)
     }
 
