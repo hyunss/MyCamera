@@ -6,33 +6,40 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
-    <Button
-        android:id="@+id/btnConnect"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="연결"
 
-        app:layout_constraintRight_toRightOf="parent"
-
-        app:layout_constraintTop_toTopOf="parent" />
     <TextureView
         android:id="@+id/view_finder"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="@id/capture_button"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:gravity="center"
+        android:background="#ffffff"
+        android:padding="8dp"
+        >
     <ImageButton
         android:id="@+id/capture_button"
         android:layout_width="72dp"
         android:layout_height="72dp"
-        android:layout_margin="24dp"
         android:background="#00ffffff"
+        android:layout_marginStart="135dp"
         app:srcCompat="@drawable/icon"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
          />
-
+    <ImageButton
+        android:id="@+id/btnConnect"
+        android:layout_width="120dp"
+        android:layout_height="70dp"
+        app:srcCompat="@drawable/connect"
+        android:background="#00ffffff"
+        android:layout_marginStart="20dp"
+        />
+    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

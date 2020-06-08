@@ -83,7 +83,7 @@ class MainActivity : AppCompatActivity(), LifecycleOwner {
             }
 
         })
-        val btnConnect : Button = findViewById(R.id.btnConnect)
+        val btnConnect : ImageButton = findViewById(R.id.btnConnect)
         btnConnect.setOnClickListener{
             if (bt.serviceState == BluetoothState.STATE_CONNECTED) {
                 bt.disconnect()
