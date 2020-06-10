@@ -36,7 +36,7 @@ private lateinit var bt : BluetoothSPP
 private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
 
 class MainActivity : AppCompatActivity(), LifecycleOwner {
-
+    var count = 0
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -94,23 +94,29 @@ class MainActivity : AppCompatActivity(), LifecycleOwner {
 
         }
 
+
         bt.setOnDataReceivedListener { _, message ->  //데이터 수신
-            if(message == "1"){
-                preview.setOnPreviewOutputUpdateListener {
+            if(count<10){
+                if(message == "1"){
+                    preview.setOnPreviewOutputUpdateListener {
 
-                    // To update the SurfaceTexture, we have to remove it and re-add it
-                    val parent = viewFinder.parent as ViewGroup
-                    parent.removeView(viewFinder)
-                    parent.addView(viewFinder, 0)
+                        // To update the SurfaceTexture, we have to remove it and re-add it
+                        val parent = viewFinder.parent as ViewGroup
+                        parent.removeView(viewFinder)
+                        parent.addView(viewFinder, 0)
 
-                    viewFinder.surfaceTexture = it.surfaceTexture
-                    updateTransform()
+                        viewFinder.surfaceTexture = it.surfaceTexture
+                        updateTransform()
+
+                    }
+                    file = File(externalMediaDirs.first(),
+                        "${System.currentTimeMillis()}.jpg")
+                    takePicture()
+                    setup()
+                    count++
                 }
-                file = File(externalMediaDirs.first(),
-                    "${System.currentTimeMillis()}.jpg")
-                takePicture()
-                setup()
             }
+
         }
     }
 
@@ -134,8 +140,9 @@ class MainActivity : AppCompatActivity(), LifecycleOwner {
     }
 
     private fun setup() {
-            bt.send("2",true)
+            bt.send("1",true)
     }
+
 
     private val executor = Executors.newSingleThreadExecutor()
     private lateinit var viewFinder: TextureView
@@ -224,6 +231,7 @@ class MainActivity : AppCompatActivity(), LifecycleOwner {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if(keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN){
+            count = 0
             bt.send("1",true)
             return true
         }
